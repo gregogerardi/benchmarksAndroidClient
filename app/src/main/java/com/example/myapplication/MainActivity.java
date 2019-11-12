@@ -27,6 +27,7 @@ import com.example.myapplication.service.BatteryNotificator;
 import com.example.myapplication.service.BenchmarkExecutor;
 import com.example.myapplication.service.PollingIntentService;
 import com.example.myapplication.service.ServerConnection;
+import com.example.myapplication.service.ToastIntentService;
 import com.example.myapplication.utils.Cb;
 
 import org.json.JSONObject;
@@ -37,6 +38,7 @@ import static com.example.myapplication.service.BenchmarkIntentService.PROGRESS_
 import static com.example.myapplication.service.PollingIntentService.POLLING_ACTION;
 import static com.example.myapplication.service.SamplingIntentService.END_SAMPLING_ACTION;
 import static com.example.myapplication.service.SamplingIntentService.PROGRESS_SAMPLING_ACTION;
+import static com.example.myapplication.service.ToastIntentService.TOAST_ACTION;
 
 public class MainActivity extends Activity {
 
@@ -52,14 +54,14 @@ public class MainActivity extends Activity {
     final Cb<String> onError = new Cb<String>() {
         @Override
         public void run(String error) {
-            Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+            ToastIntentService.createToasts(error);
         }
     };
     //callbacks for battery updates
     final Cb<JSONObject> batteryUpdateOnSucess = new Cb<JSONObject>() {
         @Override
         public void run(JSONObject jsonObject) {
-            Toast.makeText(MainActivity.this, "Battery Update Complete :)", Toast.LENGTH_SHORT).show();
+            ToastIntentService.createToasts("Battery Update Complete :)");
             requestBenchmarksButton.setEnabled(true);
         }
     };
@@ -69,11 +71,12 @@ public class MainActivity extends Activity {
     //services
     private ServerConnection serverConnection;
     private BatteryNotificator batteryNotificator;
+
     //callbacks for results send
     final Cb<String> resultSendCb = new Cb<String>() {
         @Override
         public void run(String useless) {
-            Toast.makeText(MainActivity.this, "Results send", Toast.LENGTH_SHORT).show();
+            ToastIntentService.createToasts("Results send");
             serverConnection.postUpdate(new UpdateData(THIS_DEVICE_CPU_MHZ, THIS_DEVICE_BATTERY_MAH, minBatteryLevel, batteryNotificator.getCurrentLevel()), batteryUpdateOnSucess, onError, getApplicationContext());
         }
     };
@@ -83,7 +86,7 @@ public class MainActivity extends Activity {
     final Cb<BenchmarkData> benchmarkReceivedOnSucess = new Cb<BenchmarkData>() {
         @Override
         public void run(BenchmarkData benchmarkData) {
-            Toast.makeText(MainActivity.this, "Benchmarks received :)", Toast.LENGTH_SHORT).show();
+            ToastIntentService.createToasts("Benchmarks received :)");
             benchmarkExecutor.setBenchmarkData(benchmarkData);
             minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
             stateOfCharge = benchmarkExecutor.getNeededBatteryState();
@@ -101,14 +104,14 @@ public class MainActivity extends Activity {
         public void run(Object useless) {
             synchronized (evaluating) {
                 if (!running) {
-                    Toast.makeText(MainActivity.this, "Benchmark can start :)", Toast.LENGTH_SHORT).show();
+                    ToastIntentService.createToasts("Benchmark can start :)");
                     if (benchmarkExecutor.hasMoreToExecute()) {
                         running = true;
                         benchmarkExecutor.execute(getApplicationContext());
                         minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
                         serverConnection.postUpdate(new UpdateData(THIS_DEVICE_CPU_MHZ, THIS_DEVICE_BATTERY_MAH, minBatteryLevel, batteryNotificator.getCurrentLevel()), batteryUpdateOnSucess, onError, getApplicationContext());
                     } else
-                        Toast.makeText(MainActivity.this, "There is no more benchmark", Toast.LENGTH_SHORT).show();
+                        ToastIntentService.createToasts("There is no more benchmark");
                     evaluating = false;
                 }
             }
@@ -118,7 +121,7 @@ public class MainActivity extends Activity {
     final Cb<String> onErrorBS = new Cb<String>() {
         @Override
         public void run(String error) {
-            Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+            ToastIntentService.createToasts(error);
             evaluating = false;
         }
     };
@@ -126,6 +129,8 @@ public class MainActivity extends Activity {
     private BroadcastReceiver batteryInfoReceiver;
     //receiver for updates from the benchmark run
     private ProgressReceiver rcv;
+    //receiver for toasts
+    private ToastReceiver trcv;
     //receiver for updates from the polling service
     private PollingReceiver prcv;
     //view components
@@ -157,6 +162,10 @@ public class MainActivity extends Activity {
         //set service to interact with the server
         serverConnection = ServerConnection.getService();
 
+        //set service to render toasts
+        Intent intent3 = new Intent(this, ToastIntentService.class);
+        this.startService(intent3);
+
         //initialize battery intents receiver
         this.batteryNotificator = BatteryNotificator.getInstance();
         batteryInfoReceiver = new BroadcastReceiver() {
@@ -187,6 +196,12 @@ public class MainActivity extends Activity {
         filter2.addAction(POLLING_ACTION);
         prcv = new PollingReceiver();
         registerReceiver(prcv, filter2);
+
+        //set receiver for toats service to the main thread
+        IntentFilter filter3 = new IntentFilter();
+        filter3.addAction(TOAST_ACTION);
+        trcv = new ToastReceiver();
+        registerReceiver(trcv, filter3);
 
         //initialize benchmark service
         this.benchmarkExecutor = new BenchmarkExecutor();
@@ -341,6 +356,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    public class ToastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //polling try
+            if (intent.getAction().equals(TOAST_ACTION)) {
+                Toast.makeText(context, intent.getStringExtra("msg"), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     public class ProgressReceiver extends BroadcastReceiver {
 
         @Override
@@ -348,10 +373,10 @@ public class MainActivity extends Activity {
             //benchmarck run stage report
             if (intent.getAction().equals(PROGRESS_BENCHMARK_ACTION)) {
                 String prog = intent.getStringExtra("progress");
-                Toast.makeText(context, prog, Toast.LENGTH_SHORT).show();
+                ToastIntentService.createToasts(prog);
                 minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
             } else if (intent.getAction().equals(END_BENCHMARK_ACTION)) {
-                Toast.makeText(context, "Run stage finished", Toast.LENGTH_SHORT).show();
+                ToastIntentService.createToasts("Run stage finished");
                 String result = intent.getStringExtra("payload");
                 String variant = intent.getStringExtra("variant");
                 serverConnection.sendResult(resultSendCb, onError, getApplicationContext(), result.getBytes(), "run", variant);
@@ -361,16 +386,15 @@ public class MainActivity extends Activity {
                     minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
                     startBenchmark();
                 } else
-                    Toast.makeText(MainActivity.this, "There is no more benchmark", Toast.LENGTH_SHORT).show();
-
+                    ToastIntentService.createToasts("There is no more benchmark");
             }
             //benchmarck sampling stage report
             if (intent.getAction().equals(PROGRESS_SAMPLING_ACTION)) {
                 String prog = intent.getStringExtra("progress");
-                Toast.makeText(context, prog, Toast.LENGTH_SHORT).show();
+                ToastIntentService.createToasts(prog);
                 minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
             } else if (intent.getAction().equals(END_SAMPLING_ACTION)) {
-                Toast.makeText(context, "Sampling finished", Toast.LENGTH_SHORT).show();
+                ToastIntentService.createToasts("Sampling finished");
                 String result = intent.getStringExtra("payload");
                 String variant = intent.getStringExtra("variant");
                 serverConnection.sendResult(resultSendCb, onError, getApplicationContext(), result.getBytes(), "sampling", variant);
@@ -380,8 +404,7 @@ public class MainActivity extends Activity {
                     minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
                     startBenchmark();
                 } else
-                    Toast.makeText(MainActivity.this, "There is no more benchmark", Toast.LENGTH_SHORT).show();
-
+                    ToastIntentService.createToasts("There is no more benchmark");
             }
         }
     }
