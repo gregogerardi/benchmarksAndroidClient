@@ -2,8 +2,7 @@ package com.example.myapplication.service;
 
 import android.app.IntentService;
 import android.content.Intent;
-
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import com.example.myapplication.Benchmark.BatteryStopCondition;
 import com.example.myapplication.Benchmark.Benchmark;

@@ -2,8 +2,7 @@ package com.example.myapplication.service;
 
 import android.app.IntentService;
 import android.content.Intent;
-
-import androidx.annotation.Nullable;
+import android.support.annotation.Nullable;
 
 import static com.example.myapplication.MainActivity.POLLING_INTERVAL;
 

@@ -9,6 +9,8 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -18,9 +20,6 @@ import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.example.myapplication.Benchmark.BenchmarkData;
 import com.example.myapplication.model.UpdateData;
@@ -61,6 +60,7 @@ public class MainActivity extends Activity {
         @Override
         public void run(JSONObject jsonObject) {
             Toast.makeText(MainActivity.this, "Battery Update Complete :)", Toast.LENGTH_SHORT).show();
+            requestBenchmarksButton.setEnabled(true);
         }
     };
     //condicions for postInitPayload
@@ -88,6 +88,8 @@ public class MainActivity extends Activity {
             minBatteryLevel = benchmarkExecutor.getNeededBatteryLevelNextStep();
             stateOfCharge = benchmarkExecutor.getNeededBatteryState();
             serverConnection.postUpdate(new UpdateData(THIS_DEVICE_CPU_MHZ, THIS_DEVICE_BATTERY_MAH, minBatteryLevel, batteryNotificator.getCurrentLevel()), batteryUpdateOnSucess, onError, getApplicationContext());
+            startBenchmarksButton.setEnabled(true);
+            aSwitch.setEnabled(true);
         }
     };
     //mutex
@@ -220,6 +222,7 @@ public class MainActivity extends Activity {
                     manuaBatteryUpdateButton.setEnabled(false);
                     requestBenchmarksButton.setEnabled(false);
                     startBenchmarksButton.setEnabled(false);
+                    aSwitch.setEnabled(false);
 
                 } else {
                     String serverUrl = String.format("http://%s:%s/dewsim/%s", ipTextView.getText(), portTextView.getText(), modelEditText.getText());
@@ -229,8 +232,6 @@ public class MainActivity extends Activity {
                     ipEditText.setEnabled(false);
                     portEditText.setEnabled(false);
                     manuaBatteryUpdateButton.setEnabled(true);
-                    requestBenchmarksButton.setEnabled(true);
-                    startBenchmarksButton.setEnabled(true);
                 }
             }
         });
