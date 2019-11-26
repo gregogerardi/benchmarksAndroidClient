@@ -10,8 +10,6 @@ import com.example.myapplication.Benchmark.Variant;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import java.lang.reflect.InvocationTargetException;
-
 public class SamplingIntentService extends IntentService {
 
     public static final String PROGRESS_SAMPLING_ACTION = "progressSampling";
@@ -30,7 +28,7 @@ public class SamplingIntentService extends IntentService {
         try {
             Class<Benchmark> benchmarkClass = (Class<Benchmark>) Class.forName(intent.getStringExtra("samplingName"));
             benchmark = benchmarkClass.getConstructor(Variant.class).newInstance(gson.fromJson(intent.getStringExtra("benchmarkVariant"), Variant.class));
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         ProgressUpdater progressUpdater = new SamplingProgressUpdater(this, PROGRESS_SAMPLING_ACTION, END_SAMPLING_ACTION, benchmark.getVariant().getVariantId());

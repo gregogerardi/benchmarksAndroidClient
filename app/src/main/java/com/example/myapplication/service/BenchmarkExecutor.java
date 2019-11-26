@@ -8,6 +8,7 @@ import com.example.myapplication.Benchmark.BenchmarkDefinition;
 import com.example.myapplication.Benchmark.Variant;
 import com.google.gson.GsonBuilder;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class BenchmarkExecutor {
         final BenchmarkDefinition definition = benchmarkData.getBenchmarkDefinitions().get(0);
         benchClassName = "com.example.myapplication.Benchmark." + definition.getBenchmarkClass();
         variants = definition.getVariants();
-        variants.sort(new Comparator<Variant>() {
+        Collections.sort(variants, new Comparator<Variant>() {
             @Override
             public int compare(Variant o1, Variant o2) {
                 List<String> order = benchmarkData.getRunOrder();
